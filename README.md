@@ -41,6 +41,28 @@ python3 build.py           # leest config.json + content/*.md -> index.html
 - **Opmerkingen terug**: knop onderaan mailt of downloadt alle opmerkingen;
   vul je Supabase in `config.json` in en ze synchroniseren ook live.
 
+## Vier rollen
+
+Bij het openen kiest de lezer één keer **wie hij is** — dat wordt onthouden
+(wisselen kan via de knop bovenaan). Elke opmerking krijgt een gekleurd
+rollabel, en meerdere rollen kunnen op hetzelfde blok reageren.
+
+| Rol | Doet | Extra |
+|---|---|---|
+| **Auteur** | leest de reacties | mag opmerkingen **afvinken** |
+| **Redactie** | plaatst opmerkingen/correcties | — |
+| **Eindredacteur** | idem, met eindoordeel | mag opmerkingen **afvinken** |
+| **Beeldredactie** | plaatst opmerkingen **én voegt een afbeelding of schema toe** | beeld toevoegen |
+
+**Beeld toevoegen (Beeldredactie):** klik op een blok → *„＋ Beeld / schema
+toevoegen"* → kies een bestand. Het verschijnt als voorstel onder dat blok, met
+een bijschriftveld. Grote foto's worden automatisch verkleind; SVG-schema's
+blijven scherp. De beelden reizen mee in de **export naar de auteur** (de knop
+*Versturen* levert dan één `redactieopmerkingen.html` met alle opmerkingen én
+beelden erin). Live delen via een server kan later — zie `supabase.sql`.
+
+Rollen zitten in de tool; je hoeft er niets voor in te stellen.
+
 ## Achter een gesloten deur (wachtwoord)
 
 Wil je dat alleen de reviewer erbij kan? Vergrendel de gebouwde pagina:

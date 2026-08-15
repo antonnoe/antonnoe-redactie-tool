@@ -147,12 +147,43 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
 .intro p{margin:.5em 0}
 @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}.galerijkaart{transform:none!important}}
 @media (max-width:640px){:root{--basis:17.5px}.kop .titel{display:none}}
+
+/* ---- rollen ---- */
+.rolknop{font-family:Poppins,sans-serif;font-weight:600;font-size:.72rem;border:1.5px solid var(--b15);
+  background:#fff;border-radius:6px;padding:.28em .6em;cursor:pointer;color:var(--bordeaux);white-space:nowrap;display:flex;gap:.4em;align-items:center}
+.rolknop:hover{background:var(--b04)}
+.badge{display:inline-block;font-family:Poppins,sans-serif;font-weight:700;font-size:.62rem;letter-spacing:.05em;
+  text-transform:uppercase;color:#fff;border-radius:4px;padding:.14em .5em;vertical-align:middle}
+#rolkeuze{position:fixed;inset:0;z-index:70;background:rgba(42,38,34,.55);place-items:center;padding:1.2rem}
+#rolkeuze .kaart{background:var(--papier);border-radius:12px;padding:1.6rem;max-width:420px;width:100%}
+#rolkeuze h2{margin:.1em 0 .3em;font-size:1.15rem}
+#rolkeuze p{color:var(--grijs);font-size:.9rem;margin:.2em 0 1.2em}
+#rolkeuze .rollen{display:grid;gap:.55rem}
+#rolkeuze .rollen button{font-family:Poppins,sans-serif;font-weight:600;font-size:.95rem;padding:.7em 1em;border-radius:8px;
+  border:1.5px solid var(--b15);background:#fff;color:var(--inkt);cursor:pointer;text-align:left;display:flex;align-items:center;gap:.6em}
+#rolkeuze .rollen button:hover{background:var(--b04)}
+#rolkeuze .stip{width:.85em;height:.85em;border-radius:50%;flex:0 0 auto}
+.opmerkingen{margin:.3em 0 1.2em;display:grid;gap:.4em}
+.opmerking-chip .kop{display:flex;align-items:center;gap:.5em;margin-bottom:.25em}
+.opmerking-chip.klaar{opacity:.55;text-decoration:line-through}
+.opmerking-chip img{max-width:100%;border-radius:6px;margin-top:.4em;display:block}
+.beeldknop{font-family:Poppins,sans-serif;font-weight:600;font-size:.82rem;border:1.5px dashed var(--b40);
+  background:#fff;color:var(--bordeaux);border-radius:8px;padding:.5em .9em;cursor:pointer;margin-top:.5em}
+.editor .bestaand{display:grid;gap:.4em;margin-bottom:.7em}
+.editor .regelitem{display:flex;gap:.5em;align-items:flex-start;font-size:.9em;background:var(--b04);padding:.4em .6em;border-radius:6px}
+.editor .regelitem>span:not(.mini){overflow-wrap:anywhere}
+.editor .regelitem .mini{margin-left:auto;display:flex;gap:.3em;flex:0 0 auto}
+.editor .regelitem .mini button{font-size:.7rem;padding:.15em .5em;border-color:var(--b15);color:var(--bordeaux);background:#fff}
+.editor .bijschrift{width:100%;margin-top:.4em;padding:.5em;border:1px solid var(--b15);border-radius:6px;font:inherit;font-size:.9em}
+#paneel .item.klaar{opacity:.55;text-decoration:line-through}
+#paneel .item .badge{text-decoration:none}
 </style>
 </head>
 <body>
 <header><div class="kop">
   <div class="titel">{{TITEL}}</div>
   <nav>{{NAV}}</nav>
+  <button class="rolknop" id="rolknop" type="button">Kies rol</button>
   <div class="letters" aria-label="lettergrootte">
     <button id="kleiner" title="kleinere letters">A−</button>
     <button id="groter" title="grotere letters">A+</button>
@@ -179,157 +210,291 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
   <div id="paneelinhoud"></div>
 </div></div>
 
+<div id="rolkeuze" style="display:none"><div class="kaart">
+  <h2>Wie bent u?</h2>
+  <p>Kies uw rol. Uw opmerkingen worden zo gelabeld weergegeven. Wisselen kan later via de knop bovenaan.</p>
+  <div class="rollen"></div>
+</div></div>
+
 <script>
 (function(){
-  // Centrale opslag (optioneel): vul beide waarden en elke bewaarde opmerking gaat ook naar Supabase.
+  const SLEUTEL='{{OPSLAG_SLEUTEL}}';
+  const ROLSLEUTEL=SLEUTEL+'-rol';
   const SUPABASE={url:'{{SUPABASE_URL}}', anonKey:'{{SUPABASE_ANON_KEY}}', tabel:'{{SUPABASE_TABEL}}', dossier:'{{PROJECT_SLEUTEL}}'};
-  async function syncSupabase(blok,o){
+  const ROLLEN={
+    auteur:{label:'Auteur',kleur:'#2d6a4f'},
+    redactie:{label:'Redactie',kleur:'#800000'},
+    eindredacteur:{label:'Eindredacteur',kleur:'#5a3e8f'},
+    beeldredactie:{label:'Beeldredactie',kleur:'#b5651d'}
+  };
+  const escapeH=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+
+  // ---- opslag (lijst met items per blok) ----
+  function normaliseer(d){
+    for(const k in d){
+      if(!Array.isArray(d[k])){
+        const o=d[k];
+        d[k]=(o&&o.tekst)?[{id:k+'#0',rol:o.rol||'redactie',type:'tekst',tekst:o.tekst,hoofdstuk:o.hoofdstuk,fragment:o.fragment,tijd:o.tijd,gesynct:o.gesynct}]:[];
+      }
+    }
+    return d;
+  }
+  const lees=()=>{try{return normaliseer(JSON.parse(localStorage.getItem(SLEUTEL)||'{}'))}catch(e){return{}}};
+  function schrijf(d){
+    try{localStorage.setItem(SLEUTEL,JSON.stringify(d));return true}
+    catch(e){alert('Opslag vol — waarschijnlijk een te grote afbeelding. Gebruik een kleiner beeld.');return false}
+  }
+  const items=k=>lees()[k]||[];
+
+  // ---- rol ----
+  let ROL=localStorage.getItem(ROLSLEUTEL)||'';
+  const magAfvinken=()=>ROL==='auteur'||ROL==='eindredacteur';
+  const magBeeld=()=>ROL==='beeldredactie';
+  function zetRol(r){ROL=r;localStorage.setItem(ROLSLEUTEL,r);tekenRolknop();}
+  function tekenRolknop(){
+    const b=document.getElementById('rolknop');if(!b)return;
+    const r=ROLLEN[ROL];
+    b.innerHTML=r?('<span class="badge" style="background:'+r.kleur+'">'+r.label+'</span> wissel'):'Kies rol';
+  }
+  function toonRolkeuze(){
+    const ov=document.getElementById('rolkeuze');
+    ov.querySelector('.rollen').innerHTML=Object.keys(ROLLEN).map(k=>
+      '<button type="button" data-rol="'+k+'"><span class="stip" style="background:'+ROLLEN[k].kleur+'"></span>'+ROLLEN[k].label+'</button>').join('');
+    ov.querySelectorAll('button[data-rol]').forEach(btn=>btn.onclick=()=>{zetRol(btn.dataset.rol);ov.style.display='none';herteken();});
+    ov.style.display='grid';
+  }
+
+  // ---- centrale sync (tekst + notitie voor beeld; beeldbytes gaan via de export) ----
+  async function syncSupabase(blok,it){
     if(!SUPABASE.url||!SUPABASE.anonKey)return false;
     try{const r=await fetch(SUPABASE.url+'/rest/v1/'+SUPABASE.tabel,{method:'POST',
       headers:{'Content-Type':'application/json','apikey':SUPABASE.anonKey,'Authorization':'Bearer '+SUPABASE.anonKey,'Prefer':'return=minimal'},
-      body:JSON.stringify({dossier:SUPABASE.dossier,blok:blok,hoofdstuk:o?o.hoofdstuk:null,fragment:o?o.fragment:null,opmerking:o?o.tekst:'[verwijderd]'})});
+      body:JSON.stringify({dossier:SUPABASE.dossier,blok:blok,rol:it.rol||null,type:it.type||'tekst',hoofdstuk:it.hoofdstuk||null,fragment:it.fragment||null,
+        opmerking:it.type==='beeld'?('[beeldvoorstel] '+(it.bijschrift||'')):it.tekst})});
       return r.ok;
     }catch(e){return false}
   }
-  // inhaal-sync: alles wat lokaal staat en nog niet centraal is, bij laden uploaden
   (async function(){
     if(!SUPABASE.url||!SUPABASE.anonKey)return;
-    const d=lees();let gewijzigd=false;
-    for(const k of Object.keys(d)){
-      if(d[k].gesynct)continue;
-      if(await syncSupabase(k,d[k])){d[k].gesynct=true;gewijzigd=true}
-    }
-    if(gewijzigd)schrijf(d);
+    const d=lees();let gew=false;
+    for(const k in d)for(const it of d[k]){if(it.gesynct)continue;if(await syncSupabase(k,it)){it.gesynct=true;gew=true}}
+    if(gew)schrijf(d);
   })();
-  const SLEUTEL='{{OPSLAG_SLEUTEL}}';
-  const lees=()=>{try{return JSON.parse(localStorage.getItem(SLEUTEL)||'{}')}catch(e){return{}}};
-  const schrijf=d=>localStorage.setItem(SLEUTEL,JSON.stringify(d));
 
-  // lettergrootte
+  // ---- lettergrootte ----
   const LG=SLEUTEL+'-lettergrootte';
   const zetLetters=v=>{document.documentElement.style.setProperty('--basis',v+'px');localStorage.setItem(LG,v)};
   let lg=parseFloat(localStorage.getItem(LG))||19; zetLetters(lg);
   document.getElementById('groter').onclick=()=>zetLetters(lg=Math.min(24,lg+1));
   document.getElementById('kleiner').onclick=()=>zetLetters(lg=Math.max(15,lg-1));
 
-  // blokken nummeren (stabiel: sectie + volgorde)
+  // ---- blokken nummeren (stabiel: sectie + volgorde) ----
   document.querySelectorAll('main section').forEach(sec=>{
-    const h=sec.id;
-    let i=0;
+    const h=sec.id;let i=0;
     sec.querySelectorAll(':scope > p, :scope > ul, :scope > ol, :scope > table, :scope > blockquote, :scope figure.bron, :scope figure.schema, :scope .vraag, :scope .galerijkaart, :scope > h2, :scope > h3, :scope .blok > *').forEach(el=>{
       if(el.classList.contains('eyebrow'))return;
       el.dataset.blok=h+'::'+(i++);
     });
   });
 
-  const data=lees();
   const hoofdstukVan=el=>{const s=el.closest('section');const kop=s.querySelector('h1');return (s.id==='galerij'?'Galerij':(kop?kop.textContent:s.id))};
+  const badge=rol=>{const r=ROLLEN[rol]||{label:rol||'—',kleur:'#6B635C'};return '<span class="badge" style="background:'+r.kleur+'">'+escapeH(r.label)+'</span>';};
 
+  // ---- weergave onder een blok ----
   function toonChip(el){
-    const oud=el.parentNode.querySelector('.opmerking-chip[data-voor="'+el.dataset.blok+'"]');
+    const blok=el.dataset.blok;
+    const oud=el.parentNode.querySelector('.opmerkingen[data-voor="'+blok+'"]');
     if(oud)oud.remove();
-    const d=lees()[el.dataset.blok];
-    el.classList.toggle('heeft-opmerking',!!d);
-    if(!d)return;
-    const chip=document.createElement('div');
-    chip.className='opmerking-chip';chip.dataset.voor=el.dataset.blok;
-    chip.innerHTML='<b>Opmerking</b>';
-    chip.appendChild(document.createTextNode(d.tekst));
-    el.after(chip);
-    chip.onclick=e=>{e.stopPropagation();openEditor(el)};
+    const lijst=items(blok);
+    el.classList.toggle('heeft-opmerking',lijst.length>0);
+    if(!lijst.length)return;
+    const box=document.createElement('div');box.className='opmerkingen';box.dataset.voor=blok;
+    lijst.forEach(it=>{
+      const chip=document.createElement('div');
+      chip.className='opmerking-chip'+(it.afgehandeld?' klaar':'');
+      const kop='<div class="kop">'+badge(it.rol)+(it.afgehandeld?'<span title="afgehandeld">✓</span>':'')+'</div>';
+      chip.innerHTML= it.type==='beeld'
+        ? kop+(it.bijschrift?('<div>'+escapeH(it.bijschrift)+'</div>'):'')+'<img src="'+it.beeld+'" alt="">'
+        : kop+'<div>'+escapeH(it.tekst)+'</div>';
+      chip.onclick=e=>{e.stopPropagation();openEditor(el)};
+      box.appendChild(chip);
+    });
+    el.after(box);
   }
 
+  // ---- editor ----
   function openEditor(el){
     sluitEditors();
-    const d=lees()[el.dataset.blok]||{};
+    const blok=el.dataset.blok;
+    const bestaand=items(blok);
     const box=document.createElement('div');box.className='editor';
-    box.innerHTML='<label>Opmerking</label>'+
-      '<textarea placeholder="Correctie, aanvulling of bronverwijzing."></textarea>'+
-      '<div class="rij"><button class="bewaar">Bewaren</button>'+
-      (d.tekst?'<button class="weg">Verwijderen</button>':'')+
-      '<span class="status">automatisch bewaard op dit apparaat</span></div>';
-    box.querySelector('textarea').value=d.tekst||'';
+    let html='';
+    if(bestaand.length){
+      html+='<div class="bestaand">'+bestaand.map((it,idx)=>{
+        const inhoud= it.type==='beeld' ? ('🖼 '+escapeH(it.bijschrift||'afbeelding')) : escapeH(it.tekst);
+        const vink= magAfvinken()? '<button type="button" data-vink="'+idx+'">'+(it.afgehandeld?'heropen':'afvinken')+'</button>' : '';
+        return '<div class="regelitem">'+badge(it.rol)+'<span'+(it.afgehandeld?' style="opacity:.55;text-decoration:line-through"':'')+'>'+inhoud+'</span><span class="mini">'+vink+'<button type="button" data-weg="'+idx+'">×</button></span></div>';
+      }).join('')+'</div>';
+    }
+    html+='<label>Nieuwe opmerking'+(ROL?(' — '+escapeH(ROLLEN[ROL].label)):'')+'</label>'+
+          '<textarea placeholder="Correctie, aanvulling of bronverwijzing."></textarea>'+
+          '<div class="rij"><button type="button" class="bewaar">Bewaren</button>'+
+          '<span class="status">automatisch bewaard op dit apparaat</span></div>';
+    if(magBeeld()){
+      html+='<button type="button" class="beeldknop">＋ Beeld / schema toevoegen</button>'+
+            '<input type="file" class="beeldbestand" accept="image/*" hidden>'+
+            '<input type="text" class="bijschrift" placeholder="Bijschrift bij het beeld (optioneel)">';
+    }
+    box.innerHTML=html;
     el.after(box);
-    const chip=el.parentNode.querySelector('.opmerking-chip[data-voor="'+el.dataset.blok+'"]');
-    if(chip)chip.style.display='none';
-    box.querySelector('textarea').focus();
+    const chips=el.parentNode.querySelector('.opmerkingen[data-voor="'+blok+'"]');
+    if(chips)chips.style.display='none';
     box.onclick=e=>e.stopPropagation();
+    const ta=box.querySelector('textarea'); if(ta)ta.focus();
+
     box.querySelector('.bewaar').onclick=()=>{
-      const t=box.querySelector('textarea').value.trim();
-      const all=lees();
-      if(t)all[el.dataset.blok]={tekst:t,hoofdstuk:hoofdstukVan(el),fragment:el.textContent.trim().slice(0,110),tijd:new Date().toISOString()};
-      else delete all[el.dataset.blok];
-      schrijf(all);box.remove();toonChip(el);telMee();
-      if(t)syncSupabase(el.dataset.blok, all[el.dataset.blok]).then(ok=>{if(ok){const d=lees();if(d[el.dataset.blok]){d[el.dataset.blok].gesynct=true;schrijf(d)}}});
-      else syncSupabase(el.dataset.blok, null);
+      const tv=ta.value.trim();
+      if(tv)voegToe(el,{type:'tekst',tekst:tv});
+      box.remove();herteken(el);
     };
-    const weg=box.querySelector('.weg');
-    if(weg)weg.onclick=()=>{const all=lees();delete all[el.dataset.blok];schrijf(all);box.remove();toonChip(el);telMee();};
+    box.querySelectorAll('button[data-vink]').forEach(b=>b.onclick=()=>{toggleVink(blok,+b.dataset.vink);box.remove();herteken(el);});
+    box.querySelectorAll('button[data-weg]').forEach(b=>b.onclick=()=>{verwijder(blok,+b.dataset.weg);box.remove();herteken(el);});
+    if(magBeeld()){
+      const bk=box.querySelector('.beeldknop'),bf=box.querySelector('.beeldbestand'),bs=box.querySelector('.bijschrift');
+      bk.onclick=()=>bf.click();
+      bf.onchange=async()=>{
+        const f=bf.files[0]; if(!f)return;
+        bk.textContent='Bezig…';
+        try{
+          const dataUrl=await leesBeeld(f);
+          voegToe(el,{type:'beeld',beeld:dataUrl,bijschrift:bs.value.trim()});
+          box.remove();herteken(el);
+        }catch(e){bk.textContent='＋ Beeld / schema toevoegen';alert('Kon dit bestand niet verwerken.');}
+      };
+    }
   }
-  const sluitEditors=()=>document.querySelectorAll('.editor').forEach(e=>{e.remove();document.querySelectorAll('.opmerking-chip').forEach(c=>c.style.display='')});
+
+  function voegToe(el,extra){
+    const blok=el.dataset.blok;const all=lees();
+    (all[blok]=all[blok]||[]).push(Object.assign({
+      id:blok+'#'+Date.now().toString(36),rol:ROL||'redactie',
+      hoofdstuk:hoofdstukVan(el),fragment:el.textContent.trim().slice(0,110),tijd:new Date().toISOString()
+    },extra));
+    if(!schrijf(all))return;
+    const arr=all[blok];const it=arr[arr.length-1];
+    syncSupabase(blok,it).then(ok=>{if(ok){const d=lees();const a=d[blok]||[];const laatste=a[a.length-1];if(laatste){laatste.gesynct=true;schrijf(d)}}});
+  }
+  function toggleVink(blok,idx){const d=lees();if(d[blok]&&d[blok][idx]){d[blok][idx].afgehandeld=!d[blok][idx].afgehandeld;schrijf(d);}}
+  function verwijder(blok,idx){const d=lees();if(d[blok]){d[blok].splice(idx,1);if(!d[blok].length)delete d[blok];schrijf(d);}}
+
+  // beeld inlezen; raster verkleinen naar max 1400px (svg blijft as-is)
+  function leesBeeld(file){
+    return new Promise((res,rej)=>{
+      const fr=new FileReader();
+      fr.onerror=()=>rej();
+      fr.onload=()=>{
+        const url=fr.result;
+        if(file.type==='image/svg+xml'||file.size<400000){res(url);return;}
+        const img=new Image();
+        img.onload=()=>{
+          const max=1400,sc=Math.min(1,max/img.width);
+          const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+          res(c.toDataURL('image/jpeg',0.82));
+        };
+        img.onerror=()=>res(url);
+        img.src=url;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  const sluitEditors=()=>document.querySelectorAll('.editor').forEach(e=>{e.remove();document.querySelectorAll('.opmerkingen').forEach(c=>c.style.display='')});
+  function herteken(el){ if(el){toonChip(el);} else {document.querySelectorAll('[data-blok]').forEach(toonChip);} telMee(); }
 
   document.querySelectorAll('[data-blok]').forEach(el=>{
     el.addEventListener('click',e=>{
-      if(e.target.closest('a,textarea,button'))return;
+      if(e.target.closest('a,textarea,button,input'))return;
       openEditor(el);e.stopPropagation();
     });
     toonChip(el);
   });
 
+  function aantal(){let n=0;const d=lees();for(const k in d)n+=d[k].length;return n;}
   function telMee(){
-    const n=Object.keys(lees()).length;
-    document.getElementById('teller').innerHTML = n
-      ? '<b>'+n+'</b> opmerking'+(n===1?'':'en')+'.'
-      : 'Nog geen opmerkingen.';
+    const n=aantal();
+    document.getElementById('teller').innerHTML = n ? '<b>'+n+'</b> opmerking'+(n===1?'':'en')+'.' : 'Nog geen opmerkingen.';
   }
   telMee();
 
-  function compilatie(){
-    const d=lees();const regels=['Redactieopmerkingen — {{TITEL}}','Datum: '+new Date().toLocaleString('nl-NL'),''];
-    Object.keys(d).sort().forEach(k=>{
-      const o=d[k];
-      regels.push('['+o.hoofdstuk+']','Bij: "…'+o.fragment+'…"','Opmerking: '+o.tekst,'');
+  // ---- export ----
+  function sorteer(a,b){const p=a.split('::'),q=b.split('::');return p[0]===q[0]?(+p[1])-(+q[1]):p[0].localeCompare(q[0]);}
+  function alleItems(){const d=lees();const uit=[];Object.keys(d).sort(sorteer).forEach(k=>d[k].forEach(it=>uit.push(Object.assign({blok:k},it))));return uit;}
+  function tekstCompilatie(){
+    const regels=['Redactieopmerkingen — {{TITEL}}','Datum: '+new Date().toLocaleString('nl-NL'),''];
+    alleItems().forEach(it=>{
+      regels.push('['+(it.hoofdstuk||'')+'] '+(((ROLLEN[it.rol]||{}).label)||''),'Bij: "…'+(it.fragment||'')+'…"',
+        it.type==='beeld'?('Beeldvoorstel: '+(it.bijschrift||'(zonder bijschrift)')+' [zie het HTML-exportbestand]'):('Opmerking: '+it.tekst),
+        it.afgehandeld?'(afgehandeld)':'','');
     });
     return regels.join('\n');
   }
+  function htmlBundel(){
+    const rows=alleItems().map(it=>{
+      const kop=((ROLLEN[it.rol]||{}).label)||'';
+      const beeld= it.type==='beeld'? '<img src="'+it.beeld+'" style="max-width:100%;border-radius:6px;margin:.4em 0">':'';
+      const txt= it.type==='beeld'? escapeH(it.bijschrift||'') : escapeH(it.tekst);
+      return '<div style="border:1px solid #e2d9d9;border-left:4px solid #800000;border-radius:0 8px 8px 0;padding:.7em 1em;margin:.8em 0'+(it.afgehandeld?';opacity:.55':'')+'">'
+        +'<div style="font:600 12px Poppins,system-ui,sans-serif;color:#800000">'+escapeH(kop)+' · '+escapeH(it.hoofdstuk||'')+(it.afgehandeld?' ✓':'')+'</div>'
+        +'<div style="font-size:12px;color:#777;margin:.2em 0">…'+escapeH(it.fragment||'')+'…</div>'
+        +'<div>'+txt+'</div>'+beeld+'</div>';
+    }).join('');
+    return '<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><title>Redactieopmerkingen — {{TITEL}}</title></head>'
+      +'<body style="font-family:system-ui,sans-serif;max-width:720px;margin:2rem auto;padding:0 1rem;color:#2a2622">'
+      +'<h1 style="color:#800000">Redactieopmerkingen — {{TITEL}}</h1><p style="color:#777">'+new Date().toLocaleString('nl-NL')+'</p>'+rows+'</body></html>';
+  }
+  function download(naam,inhoud,type){const b=new Blob([inhoud],{type:type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=naam;a.click();}
+
   document.getElementById('kopieer').onclick=async()=>{
-    await navigator.clipboard.writeText(compilatie());
+    if(!aantal()){alert('Er zijn nog geen opmerkingen.');return;}
+    await navigator.clipboard.writeText(tekstCompilatie());
     document.getElementById('teller').innerHTML='<b>Gekopieerd.</b> Je kunt het nu ergens plakken.';
   };
   document.getElementById('verstuur').onclick=()=>{
-    const tekst=compilatie();
-    if(!Object.keys(lees()).length){alert('Er zijn nog geen opmerkingen.');return}
-    if(tekst.length<1600){
+    if(!aantal()){alert('Er zijn nog geen opmerkingen.');return;}
+    const heeftBeeld=alleItems().some(it=>it.type==='beeld');
+    const tekst=tekstCompilatie();
+    if(heeftBeeld){
+      download('redactieopmerkingen.html',htmlBundel(),'text/html;charset=utf-8');
+      location.href='mailto:{{MAIL}}?subject='+encodeURIComponent('Redactieopmerkingen — {{TITEL}}')+'&body='+encodeURIComponent('De opmerkingen en beeldvoorstellen staan in het zojuist gedownloade bestand redactieopmerkingen.html; als bijlage toevoegen.');
+      alert('De opmerkingen en beeldvoorstellen zijn opgeslagen als "redactieopmerkingen.html" (map Downloads). Er opent een e-mail; het bestand als bijlage toevoegen.');
+    }else if(tekst.length<1600){
       location.href='mailto:{{MAIL}}?subject='+encodeURIComponent('Redactieopmerkingen — {{TITEL}}')+'&body='+encodeURIComponent(tekst);
     }else{
-      const blob=new Blob([tekst],{type:'text/plain;charset=utf-8'});
-      const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-      a.download='redactieopmerkingen.txt';a.click();
+      download('redactieopmerkingen.txt',tekst,'text/plain;charset=utf-8');
       location.href='mailto:{{MAIL}}?subject='+encodeURIComponent('Redactieopmerkingen — {{TITEL}}')+'&body='+encodeURIComponent('De redactieopmerkingen staan in het zojuist gedownloade bestand (redactieopmerkingen.txt); als bijlage toevoegen.');
       alert('De opmerkingen zijn opgeslagen als "redactieopmerkingen.txt" (map Downloads). Er opent een e-mail; het bestand als bijlage toevoegen.');
     }
   };
+
+  // ---- overzichtspaneel ----
   const paneel=document.getElementById('paneel');
   function toonPaneel(){
-    const d=lees();const inh=document.getElementById('paneelinhoud');inh.innerHTML='';
-    const ks=Object.keys(d);
-    if(!ks.length){inh.innerHTML='<p class="leeg">Nog geen opmerkingen. Klik op een alinea in de tekst om er een te plaatsen.</p>';}
+    const inh=document.getElementById('paneelinhoud');inh.innerHTML='';
+    const its=alleItems();
+    if(!its.length){inh.innerHTML='<p class="leeg">Nog geen opmerkingen. Klik op een alinea in de tekst om er een te plaatsen.</p>';}
     else{
-      ks.sort((a,b)=>{const[na,ia]=a.split('::');const[nb,ib]=b.split('::');return na===nb?(+ia)-(+ib):na.localeCompare(nb)});
       let vorig='';
-      ks.forEach(k=>{
-        const o=d[k];
-        if(o.hoofdstuk!==vorig){vorig=o.hoofdstuk;const h=document.createElement('div');h.className='hfd';h.textContent=o.hoofdstuk;inh.appendChild(h)}
-        const it=document.createElement('div');it.className='item';
-        const frag=document.createElement('span');frag.className='frag';frag.textContent='\u201E\u2026'+(o.fragment||'')+'\u2026\u201D';
-        it.appendChild(frag);it.appendChild(document.createTextNode(o.tekst));
-        it.onclick=()=>{
+      its.forEach(it=>{
+        if(it.hoofdstuk!==vorig){vorig=it.hoofdstuk;const h=document.createElement('div');h.className='hfd';h.textContent=it.hoofdstuk;inh.appendChild(h);}
+        const el=document.createElement('div');el.className='item'+(it.afgehandeld?' klaar':'');
+        el.innerHTML=badge(it.rol)+' <span class="frag">„…'+escapeH(it.fragment||'')+'…”</span> '+(it.type==='beeld'?('🖼 '+escapeH(it.bijschrift||'beeld')):escapeH(it.tekst));
+        el.onclick=()=>{
           paneel.classList.remove('open');
-          const doel=document.querySelector('[data-blok="'+k+'"]');
-          if(doel){doel.scrollIntoView({behavior:'smooth',block:'center'});
-            doel.classList.remove('flits');void doel.offsetWidth;doel.classList.add('flits');}
+          const doel=document.querySelector('[data-blok="'+it.blok+'"]');
+          if(doel){doel.scrollIntoView({behavior:'smooth',block:'center'});doel.classList.remove('flits');void doel.offsetWidth;doel.classList.add('flits');}
         };
-        inh.appendChild(it);
+        inh.appendChild(el);
       });
     }
     paneel.classList.add('open');
@@ -337,7 +502,12 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
   document.getElementById('overzicht').onclick=toonPaneel;
   document.getElementById('paneelsluit').onclick=()=>paneel.classList.remove('open');
   paneel.addEventListener('click',e=>{if(e.target===paneel)paneel.classList.remove('open')});
-  document.body.addEventListener('click',e=>{if(!e.target.closest('.editor,[data-blok]'))sluitEditors()});
+  document.body.addEventListener('click',e=>{if(!e.target.closest('.editor,[data-blok],#rolknop,#rolkeuze'))sluitEditors()});
+
+  // ---- rol-init ----
+  document.getElementById('rolknop').onclick=toonRolkeuze;
+  tekenRolknop();
+  if(!ROL)toonRolkeuze();
 })();
 </script>
 </body>
