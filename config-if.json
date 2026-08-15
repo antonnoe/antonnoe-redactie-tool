@@ -1,0 +1,3 @@
+{ "titel": "Gids aankoop onroerend goed in Frankrijk", "mail": "redactie@infofrankrijk.com",
+  "project_sleutel": "if-aankoop", "opslag_sleutel": "review-if-aankoop-v1",
+  "supabase": { "url": "", "anon_key": "", "tabel": "redactie_opmerkingen" } }

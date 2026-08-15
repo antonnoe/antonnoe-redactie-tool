@@ -228,6 +228,7 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
     beeldredactie:{label:'Beeldredactie',kleur:'#b5651d'}
   };
   const escapeH=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const linkify=s=>escapeH(s).replace(/(https?:\/\/[^\s<]+)/g,u=>'<a href="'+u+'" target="_blank" rel="noopener">'+u+'</a>');
 
   // ---- opslag (lijst met items per blok) ----
   function normaliseer(d){
@@ -285,19 +286,35 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
   const LG=SLEUTEL+'-lettergrootte';
   const zetLetters=v=>{document.documentElement.style.setProperty('--basis',v+'px');localStorage.setItem(LG,v)};
   let lg=parseFloat(localStorage.getItem(LG))||19; zetLetters(lg);
-  document.getElementById('groter').onclick=()=>zetLetters(lg=Math.min(24,lg+1));
-  document.getElementById('kleiner').onclick=()=>zetLetters(lg=Math.max(15,lg-1));
+  var _gr=document.getElementById('groter'),_kl=document.getElementById('kleiner');
+  if(_gr)_gr.onclick=()=>zetLetters(lg=Math.min(24,lg+1));
+  if(_kl)_kl.onclick=()=>zetLetters(lg=Math.max(15,lg-1));
 
-  // ---- blokken nummeren (stabiel: sectie + volgorde) ----
-  document.querySelectorAll('main section').forEach(sec=>{
-    const h=sec.id;let i=0;
-    sec.querySelectorAll(':scope > p, :scope > ul, :scope > ol, :scope > table, :scope > blockquote, :scope figure.bron, :scope figure.schema, :scope .vraag, :scope .galerijkaart, :scope > h2, :scope > h3, :scope .blok > *').forEach(el=>{
-      if(el.classList.contains('eyebrow'))return;
-      el.dataset.blok=h+'::'+(i++);
+  // ---- blokken nummeren (twee modi: markdown-secties, of een bestaande HTML-dossierpagina) ----
+  var _secties=document.querySelectorAll('main section');
+  if(_secties.length){
+    _secties.forEach(sec=>{
+      const h=sec.id;let i=0;
+      sec.querySelectorAll(':scope > p, :scope > ul, :scope > ol, :scope > table, :scope > blockquote, :scope figure.bron, :scope figure.schema, :scope .vraag, :scope .galerijkaart, :scope > h2, :scope > h3, :scope .blok > *').forEach(el=>{
+        if(el.classList.contains('eyebrow'))return;
+        el.dataset.blok=h+'::'+(i++);
+      });
     });
-  });
+  }else{
+    var _root=document.querySelector('.if-dossier-wrapper')||document.querySelector('main')||document.body;
+    var _SEL='p,li,h2,h3,h4,blockquote,.if-action-panel,.if-critical,.if-warning,.if-info,.if-jurisprudence,.if-attribution,.if-update-stamp';
+    var _groep='',_i=0;
+    Array.prototype.forEach.call(_root.querySelectorAll(_SEL),function(el){
+      if(el.closest('.if-dossier-toc,.if-related-links,.if-source-list,.if-dossier-header'))return;
+      if(el.querySelector(_SEL))return;                 // alleen bladeren (geen genest blok)
+      if(!el.textContent.trim())return;
+      if(el.tagName==='H2')_groep=el.textContent.trim();
+      el.dataset.blok='b'+(_i++);
+      el.dataset.hfd=_groep||'Dossier';
+    });
+  }
 
-  const hoofdstukVan=el=>{const s=el.closest('section');const kop=s.querySelector('h1');return (s.id==='galerij'?'Galerij':(kop?kop.textContent:s.id))};
+  const hoofdstukVan=el=>{ if(el.dataset.hfd)return el.dataset.hfd; const s=el.closest('section'); if(s){const kop=s.querySelector('h1');return s.id==='galerij'?'Galerij':(kop?kop.textContent:s.id);} return 'Dossier'; };
   const badge=rol=>{const r=ROLLEN[rol]||{label:rol||'—',kleur:'#6B635C'};return '<span class="badge" style="background:'+r.kleur+'">'+escapeH(r.label)+'</span>';};
 
   // ---- weergave onder een blok ----
@@ -314,9 +331,9 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
       chip.className='opmerking-chip'+(it.afgehandeld?' klaar':'');
       const kop='<div class="kop">'+badge(it.rol)+(it.afgehandeld?'<span title="afgehandeld">✓</span>':'')+'</div>';
       chip.innerHTML= it.type==='beeld'
-        ? kop+(it.bijschrift?('<div>'+escapeH(it.bijschrift)+'</div>'):'')+'<img src="'+it.beeld+'" alt="">'
-        : kop+'<div>'+escapeH(it.tekst)+'</div>';
-      chip.onclick=e=>{e.stopPropagation();openEditor(el)};
+        ? kop+(it.bijschrift?('<div>'+linkify(it.bijschrift)+'</div>'):'')+'<img src="'+it.beeld+'" alt="">'
+        : kop+'<div>'+linkify(it.tekst)+'</div>';
+      chip.onclick=e=>{if(e.target.closest('a'))return;e.stopPropagation();openEditor(el)};
       box.appendChild(chip);
     });
     el.after(box);
@@ -428,7 +445,7 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
   telMee();
 
   // ---- export ----
-  function sorteer(a,b){const p=a.split('::'),q=b.split('::');return p[0]===q[0]?(+p[1])-(+q[1]):p[0].localeCompare(q[0]);}
+  function sorteer(a,b){const p=a.split('::'),q=b.split('::');if(p.length>1&&q.length>1)return p[0]===q[0]?(+p[1])-(+q[1]):p[0].localeCompare(q[0]);return a.localeCompare(b,undefined,{numeric:true});}
   function alleItems(){const d=lees();const uit=[];Object.keys(d).sort(sorteer).forEach(k=>d[k].forEach(it=>uit.push(Object.assign({blok:k},it))));return uit;}
   function tekstCompilatie(){
     const regels=['Redactieopmerkingen — {{TITEL}}','Datum: '+new Date().toLocaleString('nl-NL'),''];
@@ -443,7 +460,7 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
     const rows=alleItems().map(it=>{
       const kop=((ROLLEN[it.rol]||{}).label)||'';
       const beeld= it.type==='beeld'? '<img src="'+it.beeld+'" style="max-width:100%;border-radius:6px;margin:.4em 0">':'';
-      const txt= it.type==='beeld'? escapeH(it.bijschrift||'') : escapeH(it.tekst);
+      const txt= it.type==='beeld'? linkify(it.bijschrift||'') : linkify(it.tekst);
       return '<div style="border:1px solid #e2d9d9;border-left:4px solid #800000;border-radius:0 8px 8px 0;padding:.7em 1em;margin:.8em 0'+(it.afgehandeld?';opacity:.55':'')+'">'
         +'<div style="font:600 12px Poppins,system-ui,sans-serif;color:#800000">'+escapeH(kop)+' · '+escapeH(it.hoofdstuk||'')+(it.afgehandeld?' ✓':'')+'</div>'
         +'<div style="font-size:12px;color:#777;margin:.2em 0">…'+escapeH(it.fragment||'')+'…</div>'
@@ -488,8 +505,8 @@ footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
       its.forEach(it=>{
         if(it.hoofdstuk!==vorig){vorig=it.hoofdstuk;const h=document.createElement('div');h.className='hfd';h.textContent=it.hoofdstuk;inh.appendChild(h);}
         const el=document.createElement('div');el.className='item'+(it.afgehandeld?' klaar':'');
-        el.innerHTML=badge(it.rol)+' <span class="frag">„…'+escapeH(it.fragment||'')+'…”</span> '+(it.type==='beeld'?('🖼 '+escapeH(it.bijschrift||'beeld')):escapeH(it.tekst));
-        el.onclick=()=>{
+        el.innerHTML=badge(it.rol)+' <span class="frag">„…'+escapeH(it.fragment||'')+'…”</span> '+(it.type==='beeld'?('🖼 '+linkify(it.bijschrift||'beeld')):linkify(it.tekst));
+        el.onclick=(e)=>{ if(e.target.closest('a'))return;
           paneel.classList.remove('open');
           const doel=document.querySelector('[data-blok="'+it.blok+'"]');
           if(doel){doel.scrollIntoView({behavior:'smooth',block:'center'});doel.classList.remove('flits');void doel.offsetWidth;doel.classList.add('flits');}

@@ -41,6 +41,22 @@ python3 build.py           # leest config.json + content/*.md -> index.html
 - **Opmerkingen terug**: knop onderaan mailt of downloadt alle opmerkingen;
   vul je Supabase in `config.json` in en ze synchroniseren ook live.
 
+## Bestaande HTML-pagina reviewen (wrap-modus)
+
+Heb je al een opgemaakte pagina — bijvoorbeeld een WordPress-dossier met een
+eigen `<style>` — die je níet uit markdown bouwt? Leg de review-laag er dan
+overheen zonder de opmaak aan te tasten:
+
+```bash
+python3 wrap.py mijn-dossier.html config.json   # -> index.html
+```
+
+`wrap.py` heeft geen dependencies nodig (geen markdown). De pagina behoudt haar
+eigen uiterlijk; de tool voegt alleen de bovenbalk (rol), de klik-/opmerking-laag
+per alinea, en de verstuurbalk toe. Alinea's, lijstitems, koppen en kaders
+worden automatisch aanklikbaar; links in opmerkingen (bijv. een Google
+Drive-link naar een zware PDF) worden klikbaar weergegeven.
+
 ## Vier rollen
 
 Bij het openen kiest de lezer één keer **wie hij is** — dat wordt onthouden
@@ -104,7 +120,8 @@ Supabase-project.
 | Bestand | Rol |
 |---|---|
 | `template.html` | De shell: alle CSS + het klik-/opmerking-/sync-mechanisme. Placeholders `{{...}}`. |
-| `build.py` | Bouwt `index.html` uit `template.html` + `config.json` + `content/*.md`. |
+| `build.py` | Bouwt `index.html` uit `template.html` + `config.json` + `content/*.md` (markdown-modus). |
+| `wrap.py` + `wrap-template.html` | Legt de review-laag over een bestaande HTML-pagina (wrap-modus). |
 | `slot.html` | Optioneel: vergrendelt de gebouwde pagina met een wachtwoord (AES-256, in de browser). |
 | `config.json` | Projectinstellingen. |
 | `supabase.sql` | Eenmalige tabel + RLS-policy voor centrale opslag (optioneel). |
