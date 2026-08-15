@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vergrendelen — redactie-tool</title>
+<style>
+  :root{--bordeaux:#800000;--grijs:#6B635C}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#FDFCFA;color:#2A2622;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:1.5rem;line-height:1.6}
+  .kaart{width:100%;max-width:460px}
+  h1{font-size:1.2rem;color:var(--bordeaux);margin:0 0 .2em}
+  .sub{color:var(--grijs);font-size:.92rem;margin:.2em 0 1.4em}
+  label{display:block;font-size:.8rem;font-weight:600;color:var(--bordeaux);margin:.9rem 0 .3rem}
+  input[type=file],input[type=password]{width:100%;padding:.6em .7em;font-size:.95rem;
+    border:1.5px solid rgba(128,0,0,.30);border-radius:8px;background:#fff}
+  input:focus{outline:2px solid rgba(128,0,0,.35);border-color:var(--bordeaux)}
+  button{width:100%;margin-top:1.2rem;padding:.75em;font-size:.98rem;font-weight:600;color:#fff;
+    background:var(--bordeaux);border:0;border-radius:8px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  .let{background:rgba(128,0,0,.05);border-left:3px solid var(--bordeaux);border-radius:0 6px 6px 0;
+    padding:.6em .9em;font-size:.85rem;color:#4a3030;margin:1.4rem 0 0}
+  .melding{margin-top:1rem;font-size:.9rem;min-height:1.2em}
+  .ok{color:#1b7a3d}.err{color:#b00020}
+  code{background:rgba(128,0,0,.07);padding:.05em .35em;border-radius:3px;font-size:.9em}
+</style>
+</head>
+<body>
+<form class="kaart" id="f">
+  <h1>&#128274; Review-exemplaar vergrendelen</h1>
+  <p class="sub">Kies de gebouwde <code>index.html</code>, geef een wachtwoord, en download een
+    vergrendelde versie. Die versleutelde versie zet je online; de reviewer opent hem met het wachtwoord.
+    Alles gebeurt hier in de browser — er wordt niets geüpload.</p>
+
+  <label for="bestand">1 · De gebouwde index.html</label>
+  <input type="file" id="bestand" accept=".html,text/html">
+
+  <label for="ww1">2 · Wachtwoord</label>
+  <input type="password" id="ww1" autocomplete="new-password" placeholder="Kies een sterk wachtwoord">
+  <label for="ww2">Wachtwoord herhalen</label>
+  <input type="password" id="ww2" autocomplete="new-password" placeholder="Nog een keer">
+
+  <button type="submit" id="knop" disabled>Vergrendelen en downloaden</button>
+  <div class="melding" id="melding"></div>
+
+  <div class="let"><b>Onthoud:</b> dit ene wachtwoord is de enige sleutel. Er is geen herstel — raakt het
+    kwijt, dan bouw je gewoon opnieuw. Deel het via een ander kanaal dan de link zelf.</div>
+</form>
+
+<script>
+const _enc=new TextEncoder(),_dec=new TextDecoder();
+function _b64(u){let s='';const CH=0x8000;for(let i=0;i<u.length;i+=CH)s+=String.fromCharCode.apply(null,u.subarray(i,i+CH));return btoa(s);}
+function _ub64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
+async function _sleutel(ww,salt,it,gebruik){const b=await crypto.subtle.importKey('raw',_enc.encode(ww),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:it,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,gebruik);}
+async function versleutel(klaar,ww){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),it=210000;const k=await _sleutel(ww,salt,it,['encrypt']);const c=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,_enc.encode(klaar));return{v:1,it,salt:_b64(salt),iv:_b64(iv),data:_b64(new Uint8Array(c))};}
+
+// De helpers die de POORT nodig heeft om te ontsleutelen (identiek aan hierboven).
+const POORT_HELPERS = `
+const _enc=new TextEncoder(),_dec=new TextDecoder();
+function _b64(u){let s='';const CH=0x8000;for(let i=0;i<u.length;i+=CH)s+=String.fromCharCode.apply(null,u.subarray(i,i+CH));return btoa(s);}
+function _ub64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
+async function _sleutel(ww,salt,it,gebruik){const b=await crypto.subtle.importKey('raw',_enc.encode(ww),'PBKDF2',false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:it,hash:'SHA-256'},b,{name:'AES-GCM',length:256},false,gebruik);}
+async function ontsleutel(p,ww){const k=await _sleutel(ww,_ub64(p.salt),p.it,['decrypt']);const c=await crypto.subtle.decrypt({name:'AES-GCM',iv:_ub64(p.iv)},k,_ub64(p.data));return _dec.decode(c);}
+`;
+
+function titelUit(html){const m=html.match(/<title>([^<]*?)(?:\s*—\s*redactie-exemplaar)?<\/title>/i);return m?m[1].trim():'Privé review-exemplaar';}
+
+function bouwPoort(pakket, titel){
+  const eind = '<' + '/script>';
+  return `<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Privé — wachtwoord vereist</title>
+<style>
+  :root{--bordeaux:#800000}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#FDFCFA;color:#2A2622;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:1.2rem}
+  .kaart{width:100%;max-width:380px;text-align:center}
+  .slot{font-size:2rem;line-height:1}
+  h1{font-size:1.15rem;color:var(--bordeaux);margin:.7em 0 .2em}
+  p{color:#6B635C;font-size:.92rem;line-height:1.55;margin:.2em 0 1.3em}
+  input{width:100%;padding:.7em .8em;font-size:1rem;border:1.5px solid rgba(128,0,0,.30);border-radius:8px;margin-bottom:.6rem}
+  input:focus{outline:2px solid rgba(128,0,0,.35);border-color:var(--bordeaux)}
+  button{width:100%;padding:.7em;font-size:.95rem;font-weight:600;color:#fff;background:var(--bordeaux);border:0;border-radius:8px;cursor:pointer}
+  button:disabled{opacity:.6;cursor:progress}
+  .fout{color:#b00020;font-size:.9rem;min-height:1.2em;margin-top:.6rem}
+</style>
+</head>
+<body>
+<form class="kaart" id="poort" autocomplete="on">
+  <div class="slot" aria-hidden="true">&#128274;</div>
+  <h1>${String(titel).replace(/</g,'&lt;')}</h1>
+  <p>Dit document is vergrendeld. Vul het wachtwoord in dat u van de redactie hebt gekregen.</p>
+  <input type="password" id="ww" autocomplete="current-password" autofocus placeholder="Wachtwoord" aria-label="Wachtwoord">
+  <button type="submit" id="knop">Openen</button>
+  <div class="fout" id="fout" role="alert"></div>
+</form>
+<script>
+const PAKKET=${JSON.stringify(pakket)};
+${POORT_HELPERS}
+const f=document.getElementById('poort'),k=document.getElementById('knop'),fout=document.getElementById('fout');
+f.addEventListener('submit',async e=>{
+  e.preventDefault();fout.textContent='';k.disabled=true;k.textContent='Ontsleutelen…';
+  try{
+    const html=await ontsleutel(PAKKET,document.getElementById('ww').value);
+    document.open();document.write(html);document.close();
+  }catch(err){
+    fout.textContent='Onjuist wachtwoord. Probeer opnieuw.';
+    k.disabled=false;k.textContent='Openen';
+    document.getElementById('ww').select();
+  }
+});
+${eind}
+</body>
+</html>`;
+}
+
+const bestand=document.getElementById('bestand'),ww1=document.getElementById('ww1'),ww2=document.getElementById('ww2'),
+      knop=document.getElementById('knop'),melding=document.getElementById('melding');
+let brontekst='';
+
+bestand.addEventListener('change',async()=>{
+  const file=bestand.files[0];
+  brontekst = file ? await file.text() : '';
+  toets();
+});
+[ww1,ww2].forEach(el=>el.addEventListener('input',toets));
+function toets(){knop.disabled=!(brontekst && ww1.value.length>=6 && ww1.value===ww2.value);}
+
+document.getElementById('f').addEventListener('submit',async e=>{
+  e.preventDefault();
+  melding.className='melding';melding.textContent='Versleutelen…';knop.disabled=true;
+  try{
+    const pakket=await versleutel(brontekst, ww1.value);
+    const poort=bouwPoort(pakket, titelUit(brontekst));
+    const blob=new Blob([poort],{type:'text/html;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='index.html';a.click();
+    melding.className='melding ok';
+    melding.textContent='Klaar. De vergrendelde index.html is gedownload — die zet je online.';
+  }catch(err){
+    melding.className='melding err';melding.textContent='Er ging iets mis: '+err.message;
+  }
+  knop.disabled=false;
+});
+</script>
+</body>
+</html>

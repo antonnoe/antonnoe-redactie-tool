@@ -41,6 +41,35 @@ python3 build.py           # leest config.json + content/*.md -> index.html
 - **Opmerkingen terug**: knop onderaan mailt of downloadt alle opmerkingen;
   vul je Supabase in `config.json` in en ze synchroniseren ook live.
 
+## Achter een gesloten deur (wachtwoord)
+
+Wil je dat alleen de reviewer erbij kan? Vergrendel de gebouwde pagina:
+
+1. Open `slot.html` in je browser (dubbelklik — het werkt lokaal, offline).
+2. Kies de gebouwde `index.html`, geef een wachtwoord, klik **Vergrendelen**.
+3. Je krijgt een nieuwe, versleutelde `index.html` terug. Díe zet je online.
+4. De reviewer opent de link, typt het wachtwoord, en de pagina ontsleutelt in
+   zijn eigen browser. Eén invoerveld, verder niets.
+
+Dit is een **echte** deur, geen sier-slot: de hele pagina is AES-256-versleuteld
+(sleutel via PBKDF2, 210.000 iteraties). Zonder het juiste wachtwoord staat er
+geen leesbare tekst in de broncode — anders dan bij een naïeve
+"typ-het-wachtwoord"-check, waar de inhoud gewoon in de HTML zit.
+
+Eerlijk over de grenzen:
+
+- Het is **één gedeeld wachtwoord**. Prima voor één of enkele vertrouwde
+  reviewers. Wil je per persoon toegang geven of intrekken, dan heb je een
+  backend nodig — dat valt buiten deze gratis, statische opzet.
+- Het wachtwoord is de énige sleutel; kwijt = opnieuw bouwen. Deel het via een
+  ander kanaal dan de link zelf.
+- Alles gebeurt in de browser (`slot.html` uploadt niets).
+
+Nóg strenger en zonder wachtwoord kan ook via de hosting (bijv. Cloudflare
+Access, of de wachtwoordbeveiliging van Vercel/Netlify) — maar dat is
+host-afhankelijk en soms betaald. De ingebouwde deur hierboven is gratis en
+overal inzetbaar.
+
 ## Configuratie
 
 Alles staat in `config.json` (zie `config.example.json`): titel, e-mailadres
@@ -54,6 +83,7 @@ Supabase-project.
 |---|---|
 | `template.html` | De shell: alle CSS + het klik-/opmerking-/sync-mechanisme. Placeholders `{{...}}`. |
 | `build.py` | Bouwt `index.html` uit `template.html` + `config.json` + `content/*.md`. |
+| `slot.html` | Optioneel: vergrendelt de gebouwde pagina met een wachtwoord (AES-256, in de browser). |
 | `config.json` | Projectinstellingen. |
 | `supabase.sql` | Eenmalige tabel + RLS-policy voor centrale opslag (optioneel). |
 | `content/` | Je hoofdstukken in markdown. |
