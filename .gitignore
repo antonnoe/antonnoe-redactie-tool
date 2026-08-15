@@ -1,0 +1,9 @@
+# Build-artefact: gegenereerd door build.py
+/index.html
+
+# Python
+__pycache__/
+*.pyc
+
+# Lokale configuratie met echte sleutels (kopieer config.example.json)
+/config.local.json

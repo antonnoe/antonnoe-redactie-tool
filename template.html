@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{TITEL}} — redactie-exemplaar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700&family=Mulish:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bordeaux:#800000;
+  --b04:rgba(128,0,0,.04); --b08:rgba(128,0,0,.08); --b15:rgba(128,0,0,.15);
+  --b40:rgba(128,0,0,.40); --b80:rgba(128,0,0,.80);
+  --papier:#FDFCFA; --inkt:#2A2622; --grijs:#6B635C; --archief:#FBF6E9;
+  --basis:19px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--papier);color:var(--inkt);
+  font-family:Mulish,system-ui,sans-serif;font-size:var(--basis);line-height:1.8}
+h1,h2,h3{font-family:Poppins,sans-serif;color:var(--bordeaux);line-height:1.3}
+h1{font-size:1.9em;font-weight:700;margin:.2em 0 .8em}
+h2{font-size:1.35em;font-weight:600;margin-top:2.2em}
+h3{font-size:1.1em;font-weight:600;color:#4a3535;margin-top:1.8em}
+a{color:var(--bordeaux)}
+em{font-style:italic}
+
+/* ---- bovenbalk ---- */
+header{position:sticky;top:0;z-index:40;background:var(--papier);
+  border-bottom:2px solid var(--b15);padding:.5rem 1rem}
+.kop{max-width:1060px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.kop .titel{font-family:Poppins,sans-serif;font-weight:600;color:var(--bordeaux);font-size:.95rem;white-space:nowrap}
+nav{display:flex;gap:.15rem;overflow-x:auto;flex:1;scrollbar-width:thin}
+nav a{display:flex;align-items:center;gap:.4em;text-decoration:none;color:var(--grijs);
+  font-size:.72rem;padding:.3em .55em;border-radius:4px;white-space:nowrap}
+nav a span{font-family:Poppins,sans-serif;font-weight:700;color:var(--b80);
+  border:1.5px solid var(--b15);border-radius:4px;width:1.5em;height:1.5em;
+  display:grid;place-items:center;font-size:.95em}
+nav a:hover{background:var(--b04);color:var(--bordeaux)}
+.letters{display:flex;gap:.3rem}
+.letters button{font-family:Poppins,sans-serif;font-weight:700;border:1.5px solid var(--b15);
+  background:#fff;color:var(--bordeaux);border-radius:6px;cursor:pointer;
+  width:2.2em;height:2.2em;font-size:.8rem}
+.letters button:hover{background:var(--b08)}
+
+/* ---- inhoud ---- */
+main{max-width:720px;margin:0 auto;padding:2.5rem 1.25rem 9rem;overflow-wrap:break-word}
+.tabelwrap{overflow-x:auto;margin:1em 0}
+.tabelwrap table{margin:0;min-width:480px}
+figure.bron blockquote,figure.bron p{overflow-wrap:break-word}
+.eyebrow{font-family:Poppins,sans-serif;font-size:.72rem;font-weight:600;
+  letter-spacing:.18em;text-transform:uppercase;color:var(--b40);margin:3.5em 0 0}
+section:first-of-type .eyebrow{margin-top:0}
+table{border-collapse:collapse;width:100%;font-size:.92em;margin:1em 0}
+th,td{border:1px solid var(--b15);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--b04);font-family:Poppins,sans-serif;font-weight:600;font-size:.9em}
+blockquote{margin:1.2em 0;padding:.1em 0 .1em 1.2em;border-left:3px solid var(--b15);color:#4a4440}
+ul,ol{padding-left:1.4em}
+img{max-width:100%;height:auto}
+.notitie{font-style:italic;color:var(--grijs);font-size:.9em;background:var(--b04);
+  padding:.6em 1em;border-radius:6px;margin:1.2em 0}
+
+/* ---- signatuur 1: brontekst-/citaatkaarten ---- */
+figure.bron{margin:1.8em 0;background:var(--archief);border:1px solid #E7DCC2;
+  border-left:4px solid var(--bordeaux);border-radius:3px;
+  box-shadow:2px 3px 0 rgba(128,0,0,.06);padding:.9em 1.2em .6em}
+figure.bron figcaption{font-family:Poppins,sans-serif;font-size:.68rem;font-weight:600;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--b80);margin-bottom:.4em}
+figure.bron blockquote{border:0;padding:0;margin:.2em 0;color:var(--inkt)}
+
+/* ---- vraagblokken ---- */
+.vraag{margin:1.6em 0;border:1.5px solid var(--b40);border-radius:8px;
+  padding:.9em 1.1em;background:#fff}
+.vraaglabel{display:block;font-family:Poppins,sans-serif;font-weight:700;
+  font-size:.75rem;letter-spacing:.12em;text-transform:uppercase;color:var(--bordeaux);margin-bottom:.3em}
+
+/* ---- signatuur 2: kantlijn-opmerkingen ---- */
+main section > *{position:relative;border-radius:3px}
+[data-blok]{cursor:pointer;transition:background .15s}
+[data-blok]:hover{background:var(--b04);box-shadow:-4px 0 0 var(--b40)}
+[data-blok].heeft-opmerking{box-shadow:-4px 0 0 var(--bordeaux)}
+[data-blok]:hover::after{content:"✎ opmerking";position:absolute;right:.3em;top:-1.4em;
+  font-family:Poppins,sans-serif;font-size:.62rem;letter-spacing:.06em;color:var(--b80);
+  background:var(--papier);padding:0 .4em;border:1px solid var(--b15);border-radius:4px}
+[data-blok].heeft-opmerking:hover::after{content:"✎ bewerken"}
+.editor{margin:.4em 0 1.4em;padding:.8em;background:#fff;border:1.5px solid var(--b40);border-radius:8px}
+.editor label{font-family:Poppins,sans-serif;font-size:.72rem;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--bordeaux);display:block;margin-bottom:.4em}
+.editor textarea{width:100%;min-height:5.5em;font:inherit;font-size:.95em;line-height:1.6;
+  border:1px solid var(--b15);border-radius:6px;padding:.6em;resize:vertical}
+.editor textarea:focus{outline:2px solid var(--b40)}
+.editor .rij{display:flex;gap:.6rem;margin-top:.5em;align-items:center;flex-wrap:wrap}
+.editor button{font-family:Poppins,sans-serif;font-weight:600;font-size:.85rem;border-radius:6px;
+  padding:.45em 1em;cursor:pointer;border:1.5px solid var(--bordeaux)}
+.editor .bewaar{background:var(--bordeaux);color:#fff}
+.editor .weg{background:#fff;color:var(--bordeaux)}
+.editor .status{font-size:.78rem;color:var(--grijs)}
+.opmerking-chip{margin:.3em 0 1.2em;font-size:.9em;background:var(--b04);
+  border-left:3px solid var(--bordeaux);padding:.5em .9em;border-radius:0 6px 6px 0;color:#4a3030}
+.opmerking-chip b{font-family:Poppins,sans-serif;font-size:.72rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--bordeaux);display:block}
+
+figure.schema{margin:2em 0;padding:1em;border:1px solid var(--b15);border-radius:8px;background:#fff}
+figure.schema svg{width:100%;height:auto;display:block}
+figure.schema figcaption{font-size:.82rem;color:var(--grijs);margin-top:.7em;line-height:1.5}
+/* ---- beeldgalerij ---- */
+#galerij .galerij{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:2rem;margin-top:1.5rem}
+.galerijkaart{margin:0;background:#fff;padding:.8rem .8rem 1rem;border:1px solid #E7DCC2;
+  box-shadow:3px 5px 14px rgba(42,38,34,.12)}
+.galerijkaart:nth-child(odd){transform:rotate(-.7deg)}
+.galerijkaart:nth-child(even){transform:rotate(.6deg)}
+.galerijkaart img{display:block;width:100%;border:1px solid #eee}
+.galerijkaart figcaption{font-size:.82rem;color:var(--grijs);margin-top:.6em;line-height:1.5}
+
+/* ---- verstuurbalk ---- */
+footer{position:fixed;bottom:0;left:0;right:0;z-index:50;background:#fff;
+  border-top:2px solid var(--b15);box-shadow:0 -4px 18px rgba(42,38,34,.08)}
+.balk{max-width:720px;margin:0 auto;padding:.7rem 1.25rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+.balk .teller{font-size:.9rem;color:var(--grijs);flex:1;min-width:200px}
+.balk .teller b{color:var(--bordeaux);font-family:Poppins,sans-serif}
+.balk button{font-family:Poppins,sans-serif;font-weight:600;border-radius:8px;cursor:pointer;
+  padding:.6em 1.2em;font-size:.9rem;border:1.5px solid var(--bordeaux)}
+#verstuur{background:var(--bordeaux);color:#fff}
+#kopieer{background:#fff;color:var(--bordeaux)}
+.balk button:hover{opacity:.9}
+
+#paneel{position:fixed;inset:0;z-index:60;background:rgba(42,38,34,.45);display:none}
+#paneel.open{display:block}
+#paneel .binnen{position:absolute;right:0;top:0;bottom:0;width:min(480px,92vw);background:var(--papier);
+  box-shadow:-8px 0 24px rgba(0,0,0,.18);padding:1.2rem 1.4rem;overflow-y:auto}
+#paneel h2{margin-top:.2em;font-size:1.15em}
+#paneel .hfd{font-family:Poppins,sans-serif;font-weight:600;font-size:.78rem;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--b80);margin:1.4em 0 .5em}
+#paneel .item{border:1px solid var(--b15);border-left:3px solid var(--bordeaux);border-radius:0 6px 6px 0;
+  padding:.55em .8em;margin:.5em 0;cursor:pointer;background:#fff}
+#paneel .item:hover{background:var(--b04)}
+#paneel .item .frag{font-size:.78rem;color:var(--grijs);display:block;margin-bottom:.2em}
+#paneel .sluit{float:right;border:1.5px solid var(--b15);background:#fff;color:var(--bordeaux);
+  border-radius:6px;font-family:Poppins,sans-serif;font-weight:700;cursor:pointer;padding:.3em .7em}
+#paneel .leeg{color:var(--grijs);font-size:.9em}
+.flits{animation:flits 1.6s ease}
+@keyframes flits{0%,60%{background:var(--b08);box-shadow:-4px 0 0 var(--bordeaux)}100%{background:transparent}}
+@media (prefers-reduced-motion: reduce){.flits{animation:none;background:var(--b08)}}
+.intro{background:var(--b04);border-radius:10px;padding:1.4rem 1.6rem;margin-bottom:2.5rem}
+.intro h1{font-size:1.5em;margin-top:0}
+.intro p{margin:.5em 0}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}.galerijkaart{transform:none!important}}
+@media (max-width:640px){:root{--basis:17.5px}.kop .titel{display:none}}
+</style>
+</head>
+<body>
+<header><div class="kop">
+  <div class="titel">{{TITEL}}</div>
+  <nav>{{NAV}}</nav>
+  <div class="letters" aria-label="lettergrootte">
+    <button id="kleiner" title="kleinere letters">A−</button>
+    <button id="groter" title="grotere letters">A+</button>
+  </div>
+</div></header>
+
+<main>
+<div class="intro">
+{{INTRO}}
+</div>
+{{INHOUD}}
+{{GALERIJ}}
+</main>
+
+<footer><div class="balk">
+  <div class="teller" id="teller">Nog geen opmerkingen.</div>
+  <button id="overzicht">Overzicht</button>
+  <button id="kopieer">Kopieer alles</button>
+  <button id="verstuur">Opmerkingen versturen</button>
+</div></footer>
+<div id="paneel" role="dialog" aria-label="Overzicht van opmerkingen"><div class="binnen">
+  <button class="sluit" id="paneelsluit">Sluiten</button>
+  <h2>Gemaakte opmerkingen</h2>
+  <div id="paneelinhoud"></div>
+</div></div>
+
+<script>
+(function(){
+  // Centrale opslag (optioneel): vul beide waarden en elke bewaarde opmerking gaat ook naar Supabase.
+  const SUPABASE={url:'{{SUPABASE_URL}}', anonKey:'{{SUPABASE_ANON_KEY}}', tabel:'{{SUPABASE_TABEL}}', dossier:'{{PROJECT_SLEUTEL}}'};
+  async function syncSupabase(blok,o){
+    if(!SUPABASE.url||!SUPABASE.anonKey)return false;
+    try{const r=await fetch(SUPABASE.url+'/rest/v1/'+SUPABASE.tabel,{method:'POST',
+      headers:{'Content-Type':'application/json','apikey':SUPABASE.anonKey,'Authorization':'Bearer '+SUPABASE.anonKey,'Prefer':'return=minimal'},
+      body:JSON.stringify({dossier:SUPABASE.dossier,blok:blok,hoofdstuk:o?o.hoofdstuk:null,fragment:o?o.fragment:null,opmerking:o?o.tekst:'[verwijderd]'})});
+      return r.ok;
+    }catch(e){return false}
+  }
+  // inhaal-sync: alles wat lokaal staat en nog niet centraal is, bij laden uploaden
+  (async function(){
+    if(!SUPABASE.url||!SUPABASE.anonKey)return;
+    const d=lees();let gewijzigd=false;
+    for(const k of Object.keys(d)){
+      if(d[k].gesynct)continue;
+      if(await syncSupabase(k,d[k])){d[k].gesynct=true;gewijzigd=true}
+    }
+    if(gewijzigd)schrijf(d);
+  })();
+  const SLEUTEL='{{OPSLAG_SLEUTEL}}';
+  const lees=()=>{try{return JSON.parse(localStorage.getItem(SLEUTEL)||'{}')}catch(e){return{}}};
+  const schrijf=d=>localStorage.setItem(SLEUTEL,JSON.stringify(d));
+
+  // lettergrootte
+  const LG=SLEUTEL+'-lettergrootte';
+  const zetLetters=v=>{document.documentElement.style.setProperty('--basis',v+'px');localStorage.setItem(LG,v)};
+  let lg=parseFloat(localStorage.getItem(LG))||19; zetLetters(lg);
+  document.getElementById('groter').onclick=()=>zetLetters(lg=Math.min(24,lg+1));
+  document.getElementById('kleiner').onclick=()=>zetLetters(lg=Math.max(15,lg-1));
+
+  // blokken nummeren (stabiel: sectie + volgorde)
+  document.querySelectorAll('main section').forEach(sec=>{
+    const h=sec.id;
+    let i=0;
+    sec.querySelectorAll(':scope > p, :scope > ul, :scope > ol, :scope > table, :scope > blockquote, :scope figure.bron, :scope figure.schema, :scope .vraag, :scope .galerijkaart, :scope > h2, :scope > h3, :scope .blok > *').forEach(el=>{
+      if(el.classList.contains('eyebrow'))return;
+      el.dataset.blok=h+'::'+(i++);
+    });
+  });
+
+  const data=lees();
+  const hoofdstukVan=el=>{const s=el.closest('section');const kop=s.querySelector('h1');return (s.id==='galerij'?'Galerij':(kop?kop.textContent:s.id))};
+
+  function toonChip(el){
+    const oud=el.parentNode.querySelector('.opmerking-chip[data-voor="'+el.dataset.blok+'"]');
+    if(oud)oud.remove();
+    const d=lees()[el.dataset.blok];
+    el.classList.toggle('heeft-opmerking',!!d);
+    if(!d)return;
+    const chip=document.createElement('div');
+    chip.className='opmerking-chip';chip.dataset.voor=el.dataset.blok;
+    chip.innerHTML='<b>Opmerking</b>';
+    chip.appendChild(document.createTextNode(d.tekst));
+    el.after(chip);
+    chip.onclick=e=>{e.stopPropagation();openEditor(el)};
+  }
+
+  function openEditor(el){
+    sluitEditors();
+    const d=lees()[el.dataset.blok]||{};
+    const box=document.createElement('div');box.className='editor';
+    box.innerHTML='<label>Opmerking</label>'+
+      '<textarea placeholder="Correctie, aanvulling of bronverwijzing."></textarea>'+
+      '<div class="rij"><button class="bewaar">Bewaren</button>'+
+      (d.tekst?'<button class="weg">Verwijderen</button>':'')+
+      '<span class="status">automatisch bewaard op dit apparaat</span></div>';
+    box.querySelector('textarea').value=d.tekst||'';
+    el.after(box);
+    const chip=el.parentNode.querySelector('.opmerking-chip[data-voor="'+el.dataset.blok+'"]');
+    if(chip)chip.style.display='none';
+    box.querySelector('textarea').focus();
+    box.onclick=e=>e.stopPropagation();
+    box.querySelector('.bewaar').onclick=()=>{
+      const t=box.querySelector('textarea').value.trim();
+      const all=lees();
+      if(t)all[el.dataset.blok]={tekst:t,hoofdstuk:hoofdstukVan(el),fragment:el.textContent.trim().slice(0,110),tijd:new Date().toISOString()};
+      else delete all[el.dataset.blok];
+      schrijf(all);box.remove();toonChip(el);telMee();
+      if(t)syncSupabase(el.dataset.blok, all[el.dataset.blok]).then(ok=>{if(ok){const d=lees();if(d[el.dataset.blok]){d[el.dataset.blok].gesynct=true;schrijf(d)}}});
+      else syncSupabase(el.dataset.blok, null);
+    };
+    const weg=box.querySelector('.weg');
+    if(weg)weg.onclick=()=>{const all=lees();delete all[el.dataset.blok];schrijf(all);box.remove();toonChip(el);telMee();};
+  }
+  const sluitEditors=()=>document.querySelectorAll('.editor').forEach(e=>{e.remove();document.querySelectorAll('.opmerking-chip').forEach(c=>c.style.display='')});
+
+  document.querySelectorAll('[data-blok]').forEach(el=>{
+    el.addEventListener('click',e=>{
+      if(e.target.closest('a,textarea,button'))return;
+      openEditor(el);e.stopPropagation();
+    });
+    toonChip(el);
+  });
+
+  function telMee(){
+    const n=Object.keys(lees()).length;
+    document.getElementById('teller').innerHTML = n
+      ? '<b>'+n+'</b> opmerking'+(n===1?'':'en')+'.'
+      : 'Nog geen opmerkingen.';
+  }
+  telMee();
+
+  function compilatie(){
+    const d=lees();const regels=['Redactieopmerkingen — {{TITEL}}','Datum: '+new Date().toLocaleString('nl-NL'),''];
+    Object.keys(d).sort().forEach(k=>{
+      const o=d[k];
+      regels.push('['+o.hoofdstuk+']','Bij: "…'+o.fragment+'…"','Opmerking: '+o.tekst,'');
+    });
+    return regels.join('\n');
+  }
+  document.getElementById('kopieer').onclick=async()=>{
+    await navigator.clipboard.writeText(compilatie());
+    document.getElementById('teller').innerHTML='<b>Gekopieerd.</b> Je kunt het nu ergens plakken.';
+  };
+  document.getElementById('verstuur').onclick=()=>{
+    const tekst=compilatie();
+    if(!Object.keys(lees()).length){alert('Er zijn nog geen opmerkingen.');return}
+    if(tekst.length<1600){
+      location.href='mailto:{{MAIL}}?subject='+encodeURIComponent('Redactieopmerkingen — {{TITEL}}')+'&body='+encodeURIComponent(tekst);
+    }else{
+      const blob=new Blob([tekst],{type:'text/plain;charset=utf-8'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download='redactieopmerkingen.txt';a.click();
+      location.href='mailto:{{MAIL}}?subject='+encodeURIComponent('Redactieopmerkingen — {{TITEL}}')+'&body='+encodeURIComponent('De redactieopmerkingen staan in het zojuist gedownloade bestand (redactieopmerkingen.txt); als bijlage toevoegen.');
+      alert('De opmerkingen zijn opgeslagen als "redactieopmerkingen.txt" (map Downloads). Er opent een e-mail; het bestand als bijlage toevoegen.');
+    }
+  };
+  const paneel=document.getElementById('paneel');
+  function toonPaneel(){
+    const d=lees();const inh=document.getElementById('paneelinhoud');inh.innerHTML='';
+    const ks=Object.keys(d);
+    if(!ks.length){inh.innerHTML='<p class="leeg">Nog geen opmerkingen. Klik op een alinea in de tekst om er een te plaatsen.</p>';}
+    else{
+      ks.sort((a,b)=>{const[na,ia]=a.split('::');const[nb,ib]=b.split('::');return na===nb?(+ia)-(+ib):na.localeCompare(nb)});
+      let vorig='';
+      ks.forEach(k=>{
+        const o=d[k];
+        if(o.hoofdstuk!==vorig){vorig=o.hoofdstuk;const h=document.createElement('div');h.className='hfd';h.textContent=o.hoofdstuk;inh.appendChild(h)}
+        const it=document.createElement('div');it.className='item';
+        const frag=document.createElement('span');frag.className='frag';frag.textContent='\u201E\u2026'+(o.fragment||'')+'\u2026\u201D';
+        it.appendChild(frag);it.appendChild(document.createTextNode(o.tekst));
+        it.onclick=()=>{
+          paneel.classList.remove('open');
+          const doel=document.querySelector('[data-blok="'+k+'"]');
+          if(doel){doel.scrollIntoView({behavior:'smooth',block:'center'});
+            doel.classList.remove('flits');void doel.offsetWidth;doel.classList.add('flits');}
+        };
+        inh.appendChild(it);
+      });
+    }
+    paneel.classList.add('open');
+  }
+  document.getElementById('overzicht').onclick=toonPaneel;
+  document.getElementById('paneelsluit').onclick=()=>paneel.classList.remove('open');
+  paneel.addEventListener('click',e=>{if(e.target===paneel)paneel.classList.remove('open')});
+  document.body.addEventListener('click',e=>{if(!e.target.closest('.editor,[data-blok]'))sluitEditors()});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "titel": "Voorbeeldproject",
+  "mail": "redactie@voorbeeld.nl",
+  "content_dir": "content",
+
+  "intro_html": "<h1>Review-exemplaar</h1><p>Klik op een alinea om een opmerking te plaatsen. Opmerkingen worden automatisch op dit apparaat bewaard; stoppen en later verdergaan kan. Versturen gaat via de knop onderaan.</p><p>Blokken gemarkeerd <b>„Open punt”</b> zijn claims die nog nagekeken moeten worden.</p>",
+
+  "citaat_marker": "BRON",
+  "citaat_label": "Brontekst, letterlijk overgenomen",
+  "open_punt_marker": "OPEN",
+  "open_punt_tekst": "Nog niet vastgesteld. Aanvulling of bronverwijzing welkom.",
+
+  "project_sleutel": "voorbeeld",
+  "opslag_sleutel": "review-voorbeeld-v1",
+
+  "supabase": {
+    "url": "",
+    "anon_key": "",
+    "tabel": "redactie_opmerkingen"
+  },
+
+  "galerij": null
+}
